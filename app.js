@@ -1,4 +1,3 @@
-// Sample Data with Mock Coordinates for Leaflet Map
 const defaultData = [
     { id: 1, date: "2026-09-10 14:00", location: "Munich, DE", lat: 48.1351, lng: 11.5820, category: "Transport", notes: "Arrive at MUC. Pick up premium rental car. Conf #MUC882" },
     { id: 2, date: "2026-09-10 16:00", location: "Munich, DE", lat: 48.1400, lng: 11.5900, category: "Accommodation", notes: "Check-in at large multi-bedroom vacation rental. Conf #VIL991" },
@@ -8,17 +7,24 @@ const defaultData = [
     { id: 6, date: "2026-09-19 15:00", location: "Copenhagen, DK", lat: 55.6700, lng: 12.5600, category: "Food & Drink", notes: "Mikkeller Brewery taproom & local bakery." }
 ];
 
-// Initialize Data in Local Storage
 let itinerary = JSON.parse(localStorage.getItem('euroTripData'));
 if (!itinerary) {
     itinerary = defaultData;
     localStorage.setItem('euroTripData', JSON.stringify(itinerary));
 }
 
-let map; // Global map variable
+let map; 
+let mapMarkers = [];
 
-// 1. Render the Application Views
+// Overlay setup for bottom sheets
+const overlay = document.createElement('div');
+overlay.className = 'sheet-overlay';
+document.body.appendChild(overlay);
+overlay.addEventListener('click', closeSheets);
+
 function renderUI() {
+    // Sort chronologically
+    itinerary.sort((a, b) => new Date(a.date) - new Date(b.date));
     renderTimeline();
     renderList();
     initMap();
@@ -49,34 +55,41 @@ function renderList() {
     `).join('');
 }
 
-// 2. Map Configuration (Leaflet.js)
 function initMap() {
-    if (map) return; // Prevent re-initialization
-    
-    // Center map roughly between Munich and Copenhagen
-    map = L.map('map-container', { zoomControl: false }).setView([51.1657, 10.4515], 5);
+    if (!map) {
+        map = L.map('map-container', { zoomControl: false }).setView([51.1657, 10.4515], 5);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; CARTO'
+        }).addTo(map);
+        
+        map.on('click', () => document.getElementById('map-bottom-sheet').classList.remove('open'));
+    }
 
-    // Muted CartoDB Positron Map Tiles for minimal visual noise
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; CARTO'
-    }).addTo(map);
+    // Clear existing markers
+    mapMarkers.forEach(m => map.removeLayer(m));
+    mapMarkers = [];
 
     // Plot pins
     itinerary.forEach(item => {
-        const marker = L.circleMarker([item.lat, item.lng], {
-            color: '#0065BD', // Bavarian Blue
-            fillColor: '#0065BD',
-            fillOpacity: 0.9,
-            radius: 7,
-            weight: 2
-        }).addTo(map);
+        if (item.lat && item.lng) {
+            const marker = L.circleMarker([item.lat, item.lng], {
+                color: '#0065BD',
+                fillColor: '#0065BD',
+                fillOpacity: 0.9,
+                radius: 7,
+                weight: 2
+            }).addTo(map);
 
-        // Slide up bottom sheet on pin tap
-        marker.on('click', () => showBottomSheet(item));
+            marker.on('click', (e) => {
+                L.DomEvent.stopPropagation(e);
+                showMapSheet(item);
+            });
+            mapMarkers.push(marker);
+        }
     });
 }
 
-function showBottomSheet(item) {
+function showMapSheet(item) {
     const sheet = document.getElementById('map-bottom-sheet');
     const content = document.getElementById('sheet-content');
     content.innerHTML = `
@@ -87,37 +100,129 @@ function showBottomSheet(item) {
     sheet.classList.add('open');
 }
 
-// Dismiss bottom sheet when tapping outside the sheet (on the map)
-document.getElementById('map-container').addEventListener('click', () => {
-    document.getElementById('map-bottom-sheet').classList.remove('open');
-});
-
-// 3. View Navigation Logic
 document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
-        // Reset active states
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
         
-        // Activate target view
         const targetId = e.currentTarget.getAttribute('data-target');
         e.currentTarget.classList.add('active');
         document.getElementById(targetId).classList.add('active');
 
-        // Leaflet edge-case: Must recalculate bounds when map container changes from display:none to block
         if (targetId === 'view-map') {
             setTimeout(() => map.invalidateSize(), 50);
         } else {
-            // Hide bottom sheet if leaving map view
             document.getElementById('map-bottom-sheet').classList.remove('open');
         }
     });
 });
 
-// 4. Floating Action Button Logic
-function addNewItem() {
-    alert("Smart Paste AI logic will be wired up here!");
+// --- Settings & Bottom Sheet Logic ---
+function openSettings() {
+    document.getElementById('api-key-input').value = localStorage.getItem('geminiApiKey') || '';
+    document.getElementById('settings-sheet').classList.add('open');
+    overlay.classList.add('show');
 }
 
-// Boot up
+function saveSettings() {
+    const key = document.getElementById('api-key-input').value.trim();
+    localStorage.setItem('geminiApiKey', key);
+    closeSheets();
+}
+
+function openSmartPaste() {
+    document.getElementById('ai-input').value = '';
+    document.getElementById('parsed-form').style.display = 'none';
+    document.getElementById('smart-paste-sheet').classList.add('open');
+    overlay.classList.add('show');
+}
+
+function closeSheets() {
+    document.querySelectorAll('.bottom-sheet').forEach(sheet => sheet.classList.remove('open'));
+    overlay.classList.remove('show');
+}
+
+// --- Smart Paste AI Logic ---
+async function parseTextWithAI() {
+    const apiKey = localStorage.getItem('geminiApiKey');
+    if (!apiKey) {
+        alert("Please set your Gemini API Key in the settings first.");
+        openSettings();
+        return;
+    }
+
+    const rawText = document.getElementById('ai-input').value.trim();
+    if (!rawText) return;
+
+    const btn = document.getElementById('parse-btn');
+    btn.textContent = "Parsing...";
+    btn.disabled = true;
+
+    const prompt = `
+    Extract itinerary details from the following text. Return ONLY a valid, raw JSON object (no markdown wrapping, no code blocks).
+    Use these exact keys:
+    - date (String in YYYY-MM-DD HH:MM format)
+    - location (String, City and Country Code)
+    - lat (Number, approximate latitude)
+    - lng (Number, approximate longitude)
+    - category (String, strictly choose one: "Transport", "Accommodation", "Food & Drink", or "Activity")
+    - notes (String, brief 1-2 sentence summary including any confirmation numbers)
+    
+    Text: ${rawText}
+    `;
+
+    try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }]
+            })
+        });
+
+        const data = await response.json();
+        let aiText = data.candidates[0].content.parts[0].text;
+        
+        // Strip markdown code blocks if AI accidentally includes them
+        aiText = aiText.replace(/```json/g, '').replace(/```/g, '').trim();
+        const parsedData = JSON.parse(aiText);
+
+        // Populate the form
+        document.getElementById('entry-date').value = parsedData.date || '';
+        document.getElementById('entry-location').value = parsedData.location || '';
+        document.getElementById('entry-category').value = parsedData.category || 'Activity';
+        document.getElementById('entry-notes').value = parsedData.notes || '';
+        document.getElementById('entry-lat').value = parsedData.lat || '';
+        document.getElementById('entry-lng').value = parsedData.lng || '';
+
+        // Show form for review
+        document.getElementById('parsed-form').style.display = 'block';
+
+    } catch (error) {
+        alert("Error parsing text. Please try again or check your API key.");
+        console.error(error);
+    } finally {
+        btn.textContent = "✨ Extract Details with AI";
+        btn.disabled = false;
+    }
+}
+
+function saveParsedItem() {
+    const newItem = {
+        id: Date.now(),
+        date: document.getElementById('entry-date').value,
+        location: document.getElementById('entry-location').value,
+        category: document.getElementById('entry-category').value,
+        notes: document.getElementById('entry-notes').value,
+        lat: parseFloat(document.getElementById('entry-lat').value) || null,
+        lng: parseFloat(document.getElementById('entry-lng').value) || null
+    };
+
+    itinerary.push(newItem);
+    localStorage.setItem('euroTripData', JSON.stringify(itinerary));
+    
+    renderUI();
+    closeSheets();
+}
+
 document.addEventListener('DOMContentLoaded', renderUI);
