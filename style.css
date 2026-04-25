@@ -207,3 +207,109 @@ h1 {
 .action-fab:active {
     transform: scale(0.95);
 }
+
+/* Update header to handle the flex layout for the settings gear */
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#settings-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 8px;
+}
+
+/* Bottom Sheet Adjustments for Forms */
+.bottom-sheet.full-height {
+    max-height: 85vh;
+    overflow-y: auto;
+}
+
+.bottom-sheet h2 {
+    margin-top: 0;
+    font-size: 1.4rem;
+    color: var(--text-main);
+}
+
+.form-group {
+    margin-bottom: 16px;
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+
+.form-group input, 
+.form-group select, 
+.form-group textarea {
+    padding: 14px;
+    border: 1px solid #DEE2E6;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-family: inherit;
+    background: #F8F9FA;
+    transition: border-color 0.2s;
+}
+
+.form-group input:focus, 
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--bavarian-blue);
+    background: #FFFFFF;
+}
+
+.help-text {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 6px;
+}
+
+.btn-primary, .btn-save {
+    width: 100%;
+    padding: 16px;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.05rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: opacity 0.2s;
+}
+
+.btn-primary {
+    background-color: var(--text-main);
+    color: white;
+}
+
+.btn-save {
+    background-color: var(--bavarian-blue);
+    color: white;
+}
+
+.btn-primary:active, .btn-save:active {
+    opacity: 0.8;
+}
+
+/* Background overlay when sheet is open */
+.sheet-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 999;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+.sheet-overlay.show {
+    display: block;
+    opacity: 1;
+}
