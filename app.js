@@ -15,15 +15,14 @@ if (!itinerary) {
 
 let map; 
 let mapMarkers = [];
+let currentEditingId = null; // Tracks if we are editing an existing item
 
-// Overlay setup for bottom sheets
 const overlay = document.createElement('div');
 overlay.className = 'sheet-overlay';
 document.body.appendChild(overlay);
 overlay.addEventListener('click', closeSheets);
 
 function renderUI() {
-    // Sort chronologically
     itinerary.sort((a, b) => new Date(a.date) - new Date(b.date));
     renderTimeline();
     renderList();
@@ -35,7 +34,7 @@ function renderTimeline() {
     container.innerHTML = itinerary.map(item => `
         <div class="timeline-item">
             <div class="timeline-node"></div>
-            <div class="card">
+            <div class="card" onclick="openItemDetail(${item.id})">
                 <div class="card-header">${item.date} • ${item.category}</div>
                 <h3 class="card-title">${item.location}</h3>
                 <p class="card-notes">${item.notes}</p>
@@ -47,7 +46,7 @@ function renderTimeline() {
 function renderList() {
     const container = document.getElementById('itinerary-list');
     container.innerHTML = itinerary.map(item => `
-        <div class="card">
+        <div class="card" onclick="openItemDetail(${item.id})">
             <div class="card-header">${item.date} • ${item.category}</div>
             <h3 class="card-title">${item.location}</h3>
             <p class="card-notes">${item.notes}</p>
@@ -61,15 +60,11 @@ function initMap() {
         L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; CARTO'
         }).addTo(map);
-        
-        map.on('click', () => document.getElementById('map-bottom-sheet').classList.remove('open'));
     }
 
-    // Clear existing markers
     mapMarkers.forEach(m => map.removeLayer(m));
     mapMarkers = [];
 
-    // Plot pins
     itinerary.forEach(item => {
         if (item.lat && item.lng) {
             const marker = L.circleMarker([item.lat, item.lng], {
@@ -80,26 +75,78 @@ function initMap() {
                 weight: 2
             }).addTo(map);
 
+            // Hook map pins directly into the new detail modal
             marker.on('click', (e) => {
                 L.DomEvent.stopPropagation(e);
-                showMapSheet(item);
+                openItemDetail(item.id);
             });
             mapMarkers.push(marker);
         }
     });
 }
 
-function showMapSheet(item) {
-    const sheet = document.getElementById('map-bottom-sheet');
-    const content = document.getElementById('sheet-content');
-    content.innerHTML = `
+// --- Detail View Logic ---
+function openItemDetail(id) {
+    const item = itinerary.find(i => i.id === id);
+    if (!item) return;
+
+    document.getElementById('detail-content').innerHTML = `
         <div class="card-header">${item.date} • ${item.category}</div>
         <h3 class="card-title">${item.location}</h3>
         <p class="card-notes">${item.notes}</p>
     `;
-    sheet.classList.add('open');
+
+    // Map Google Maps button
+    const directionsBtn = document.getElementById('btn-directions');
+    directionsBtn.onclick = () => {
+        const query = (item.lat && item.lng) ? `${item.lat},${item.lng}` : encodeURIComponent(item.location);
+        window.open(`https://maps.google.com/?q=${query}`, '_blank');
+    };
+
+    // Map Edit button
+    document.getElementById('btn-edit').onclick = () => editItem(id);
+
+    // Map Delete button
+    document.getElementById('btn-delete').onclick = () => deleteItem(id);
+
+    document.getElementById('detail-sheet').classList.add('open');
+    overlay.classList.add('show');
 }
 
+function deleteItem(id) {
+    if (confirm("Are you sure you want to delete this itinerary item?")) {
+        itinerary = itinerary.filter(i => i.id !== id);
+        localStorage.setItem('euroTripData', JSON.stringify(itinerary));
+        renderUI();
+        closeSheets();
+    }
+}
+
+function editItem(id) {
+    const item = itinerary.find(i => i.id === id);
+    if (!item) return;
+    
+    currentEditingId = id; // Set global state to edit mode
+    closeSheets();
+
+    // Setup form for editing (hide AI tools, show form immediately)
+    document.getElementById('form-title').innerText = "Edit Item";
+    document.getElementById('ai-input-group').style.display = 'none';
+    document.getElementById('parsed-form').style.display = 'block';
+
+    document.getElementById('entry-date').value = item.date || '';
+    document.getElementById('entry-location').value = item.location || '';
+    document.getElementById('entry-category').value = item.category || 'Activity';
+    document.getElementById('entry-notes').value = item.notes || '';
+    document.getElementById('entry-lat').value = item.lat || '';
+    document.getElementById('entry-lng').value = item.lng || '';
+
+    // Reopen as the Smart Paste sheet, but loaded with existing data
+    document.getElementById('smart-paste-sheet').classList.add('open');
+    overlay.classList.add('show');
+}
+
+// --- Navigation & Sheet Controls ---
 document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -109,30 +156,18 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
         e.currentTarget.classList.add('active');
         document.getElementById(targetId).classList.add('active');
 
-        if (targetId === 'view-map') {
-            setTimeout(() => map.invalidateSize(), 50);
-        } else {
-            document.getElementById('map-bottom-sheet').classList.remove('open');
-        }
+        if (targetId === 'view-map') setTimeout(() => map.invalidateSize(), 50);
     });
 });
 
-// --- Settings & Bottom Sheet Logic ---
-function openSettings() {
-    document.getElementById('api-key-input').value = localStorage.getItem('geminiApiKey') || '';
-    document.getElementById('settings-sheet').classList.add('open');
-    overlay.classList.add('show');
-}
-
-function saveSettings() {
-    const key = document.getElementById('api-key-input').value.trim();
-    localStorage.setItem('geminiApiKey', key);
-    closeSheets();
-}
-
 function openSmartPaste() {
+    currentEditingId = null; // Ensure we are in "Create" mode
+    
+    document.getElementById('form-title').innerText = "Add Itinerary Item";
+    document.getElementById('ai-input-group').style.display = 'flex';
     document.getElementById('ai-input').value = '';
     document.getElementById('parsed-form').style.display = 'none';
+    
     document.getElementById('smart-paste-sheet').classList.add('open');
     overlay.classList.add('show');
 }
@@ -142,12 +177,22 @@ function closeSheets() {
     overlay.classList.remove('show');
 }
 
+function openSettings() {
+    document.getElementById('api-key-input').value = localStorage.getItem('geminiApiKey') || '';
+    document.getElementById('settings-sheet').classList.add('open');
+    overlay.classList.add('show');
+}
+
+function saveSettings() {
+    localStorage.setItem('geminiApiKey', document.getElementById('api-key-input').value.trim());
+    closeSheets();
+}
+
 // --- Smart Paste AI Logic ---
 async function parseTextWithAI() {
     const apiKey = localStorage.getItem('geminiApiKey');
     if (!apiKey) {
         alert("Please set your Gemini API Key in the settings first.");
-        openSettings();
         return;
     }
 
@@ -158,36 +203,18 @@ async function parseTextWithAI() {
     btn.textContent = "Parsing...";
     btn.disabled = true;
 
-    const prompt = `
-    Extract itinerary details from the following text. Return ONLY a valid, raw JSON object (no markdown wrapping, no code blocks).
-    Use these exact keys:
-    - date (String in YYYY-MM-DD HH:MM format)
-    - location (String, City and Country Code)
-    - lat (Number, approximate latitude)
-    - lng (Number, approximate longitude)
-    - category (String, strictly choose one: "Transport", "Accommodation", "Food & Drink", or "Activity")
-    - notes (String, brief 1-2 sentence summary including any confirmation numbers)
-    
-    Text: ${rawText}
-    `;
+    const prompt = `Extract itinerary details from the following text. Return ONLY a valid JSON object. Keys: date (YYYY-MM-DD HH:MM), location (City, Country), lat (Number), lng (Number), category (Transport, Accommodation, Food & Drink, or Activity), notes (String). Text: ${rawText}`;
 
     try {
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }]
-            })
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
         });
 
         const data = await response.json();
-        let aiText = data.candidates[0].content.parts[0].text;
-        
-        // Strip markdown code blocks if AI accidentally includes them
-        aiText = aiText.replace(/```json/g, '').replace(/```/g, '').trim();
-        const parsedData = JSON.parse(aiText);
+        const parsedData = JSON.parse(data.candidates[0].content.parts[0].text.replace(/```json/g, '').replace(/```/g, '').trim());
 
-        // Populate the form
         document.getElementById('entry-date').value = parsedData.date || '';
         document.getElementById('entry-location').value = parsedData.location || '';
         document.getElementById('entry-category').value = parsedData.category || 'Activity';
@@ -195,21 +222,19 @@ async function parseTextWithAI() {
         document.getElementById('entry-lat').value = parsedData.lat || '';
         document.getElementById('entry-lng').value = parsedData.lng || '';
 
-        // Show form for review
         document.getElementById('parsed-form').style.display = 'block';
-
     } catch (error) {
-        alert("Error parsing text. Please try again or check your API key.");
-        console.error(error);
+        alert("Error parsing text.");
     } finally {
         btn.textContent = "✨ Extract Details with AI";
         btn.disabled = false;
     }
 }
 
+// Handles both Creating and Editing items
 function saveParsedItem() {
-    const newItem = {
-        id: Date.now(),
+    const itemData = {
+        id: currentEditingId ? currentEditingId : Date.now(),
         date: document.getElementById('entry-date').value,
         location: document.getElementById('entry-location').value,
         category: document.getElementById('entry-category').value,
@@ -218,9 +243,16 @@ function saveParsedItem() {
         lng: parseFloat(document.getElementById('entry-lng').value) || null
     };
 
-    itinerary.push(newItem);
+    if (currentEditingId) {
+        // Update existing
+        const index = itinerary.findIndex(i => i.id === currentEditingId);
+        if (index !== -1) itinerary[index] = itemData;
+    } else {
+        // Add new
+        itinerary.push(itemData);
+    }
+
     localStorage.setItem('euroTripData', JSON.stringify(itinerary));
-    
     renderUI();
     closeSheets();
 }
