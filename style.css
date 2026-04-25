@@ -313,3 +313,79 @@ header {
     display: block;
     opacity: 1;
 }
+
+/* --- UI Overlap & Stacking Context Fixes --- */
+.nav-pill {
+    z-index: 100; /* Keeps pill below overlays */
+}
+
+.sheet-overlay {
+    z-index: 900; /* Sits over the pill, under the sheet */
+}
+
+.bottom-sheet {
+    z-index: 1000; /* Highest priority */
+}
+
+/* Adds padding to the bottom of sheets so buttons don't clip */
+.sheet-spacer {
+    height: 40px; 
+    width: 100%;
+}
+
+/* --- Interactive Cards --- */
+.card {
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.card:active {
+    transform: scale(0.98);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+}
+
+/* --- Detail Sheet Button Styles --- */
+.detail-actions {
+    margin-top: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.secondary-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.secondary-actions button {
+    flex: 1;
+    padding: 14px;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.btn-outline {
+    background: transparent;
+    border: 1px solid var(--text-muted);
+    color: var(--text-main);
+}
+
+.btn-danger {
+    background: #FFF0F0;
+    border: 1px solid #FFD6D6;
+    color: #DC3545;
+}
+
+.secondary-actions button:active {
+    opacity: 0.7;
+}
+
+/* Detail View Content Styles */
+#detail-content .card-title {
+    font-size: 1.5rem;
+    margin-top: 8px;
+    color: var(--bavarian-blue);
+}

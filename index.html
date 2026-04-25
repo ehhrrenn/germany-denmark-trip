@@ -21,22 +21,33 @@
         </section>
         <section id="view-map" class="view">
             <div id="map-container"></div>
-            <div id="map-bottom-sheet" class="bottom-sheet">
-                <div class="sheet-handle"></div>
-                <div id="sheet-content"></div>
-            </div>
-        </section>
+            </section>
         <section id="view-list" class="view">
             <div id="itinerary-list" class="list-container"></div>
         </section>
     </main>
 
+    <div id="detail-sheet" class="bottom-sheet">
+        <div class="sheet-handle" onclick="closeSheets()"></div>
+        <div id="detail-content">
+            </div>
+        <div class="detail-actions">
+            <button class="btn-primary" id="btn-directions">🗺️ Get Directions</button>
+            <div class="secondary-actions">
+                <button class="btn-outline" id="btn-edit">Edit Details</button>
+                <button class="btn-danger" id="btn-delete">Delete</button>
+            </div>
+        </div>
+        <div class="sheet-spacer"></div>
+    </div>
+
     <div id="smart-paste-sheet" class="bottom-sheet full-height">
         <div class="sheet-handle" onclick="closeSheets()"></div>
-        <h2>Add Itinerary Item</h2>
-        <div class="form-group">
+        <h2 id="form-title">Add Itinerary Item</h2>
+        
+        <div id="ai-input-group" class="form-group">
             <label>Paste Email or Confirmation Text</label>
-            <textarea id="ai-input" rows="4" placeholder="Paste your flight or hotel details here..."></textarea>
+            <textarea id="ai-input" rows="3" placeholder="Paste your flight or hotel details here..."></textarea>
             <button class="btn-primary" onclick="parseTextWithAI()" id="parse-btn">✨ Extract Details with AI</button>
         </div>
         
@@ -67,6 +78,7 @@
             
             <button class="btn-save" onclick="saveParsedItem()">Save to Itinerary</button>
         </div>
+        <div class="sheet-spacer"></div>
     </div>
 
     <div id="settings-sheet" class="bottom-sheet">
@@ -78,6 +90,7 @@
             <p class="help-text">Stored securely on your device for Smart Paste AI.</p>
             <button class="btn-save" onclick="saveSettings()">Save Settings</button>
         </div>
+        <div class="sheet-spacer"></div>
     </div>
 
     <nav class="nav-pill">
