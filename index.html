@@ -10,13 +10,15 @@
 <body>
     <header>
         <h1>EuroTrip '26</h1>
+        <button id="settings-btn" onclick="openSettings()">
+            <svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.06-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.73,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.06,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.43-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.49-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>
+        </button>
     </header>
 
     <main>
         <section id="view-timeline" class="view active">
             <div class="timeline-container" id="timeline-list"></div>
         </section>
-
         <section id="view-map" class="view">
             <div id="map-container"></div>
             <div id="map-bottom-sheet" class="bottom-sheet">
@@ -24,11 +26,59 @@
                 <div id="sheet-content"></div>
             </div>
         </section>
-
         <section id="view-list" class="view">
             <div id="itinerary-list" class="list-container"></div>
         </section>
     </main>
+
+    <div id="smart-paste-sheet" class="bottom-sheet full-height">
+        <div class="sheet-handle" onclick="closeSheets()"></div>
+        <h2>Add Itinerary Item</h2>
+        <div class="form-group">
+            <label>Paste Email or Confirmation Text</label>
+            <textarea id="ai-input" rows="4" placeholder="Paste your flight or hotel details here..."></textarea>
+            <button class="btn-primary" onclick="parseTextWithAI()" id="parse-btn">✨ Extract Details with AI</button>
+        </div>
+        
+        <div id="parsed-form" style="display: none; margin-top: 24px;">
+            <div class="form-group">
+                <label>Date & Time</label>
+                <input type="text" id="entry-date" placeholder="YYYY-MM-DD HH:MM">
+            </div>
+            <div class="form-group">
+                <label>Location</label>
+                <input type="text" id="entry-location" placeholder="City, Country">
+            </div>
+            <div class="form-group">
+                <label>Category</label>
+                <select id="entry-category">
+                    <option>Transport</option>
+                    <option>Accommodation</option>
+                    <option>Food & Drink</option>
+                    <option>Activity</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Notes</label>
+                <input type="text" id="entry-notes">
+            </div>
+            <input type="hidden" id="entry-lat">
+            <input type="hidden" id="entry-lng">
+            
+            <button class="btn-save" onclick="saveParsedItem()">Save to Itinerary</button>
+        </div>
+    </div>
+
+    <div id="settings-sheet" class="bottom-sheet">
+        <div class="sheet-handle" onclick="closeSheets()"></div>
+        <h2>Settings</h2>
+        <div class="form-group">
+            <label>Gemini API Key</label>
+            <input type="password" id="api-key-input" placeholder="Enter your key">
+            <p class="help-text">Stored securely on your device for Smart Paste AI.</p>
+            <button class="btn-save" onclick="saveSettings()">Save Settings</button>
+        </div>
+    </div>
 
     <nav class="nav-pill">
         <div class="nav-segments">
@@ -42,7 +92,7 @@
                 <svg viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
             </button>
         </div>
-        <button class="action-fab" onclick="addNewItem()">+</button>
+        <button class="action-fab" onclick="openSmartPaste()">+</button>
     </nav>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
