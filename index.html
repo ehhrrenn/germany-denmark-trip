@@ -2,24 +2,50 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Germany & Denmark 2026</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>EuroTrip '26</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <header>
         <h1>EuroTrip '26</h1>
-        <div class="sync-controls">
-            <button onclick="exportData()">Export</button>
-            <button onclick="importData()">Import</button>
-        </div>
     </header>
 
-    <main id="itinerary-list">
-        </main>
+    <main>
+        <section id="view-timeline" class="view active">
+            <div class="timeline-container" id="timeline-list"></div>
+        </section>
 
-    <button class="fab" onclick="addNewItem()">+</button>
+        <section id="view-map" class="view">
+            <div id="map-container"></div>
+            <div id="map-bottom-sheet" class="bottom-sheet">
+                <div class="sheet-handle"></div>
+                <div id="sheet-content"></div>
+            </div>
+        </section>
 
+        <section id="view-list" class="view">
+            <div id="itinerary-list" class="list-container"></div>
+        </section>
+    </main>
+
+    <nav class="nav-pill">
+        <div class="nav-segments">
+            <button class="nav-btn active" data-target="view-timeline">
+                <svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+            </button>
+            <button class="nav-btn" data-target="view-map">
+                <svg viewBox="0 0 24 24"><path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/></svg>
+            </button>
+            <button class="nav-btn" data-target="view-list">
+                <svg viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
+            </button>
+        </div>
+        <button class="action-fab" onclick="addNewItem()">+</button>
+    </nav>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
