@@ -211,11 +211,16 @@ async function parseTextWithAI() {
     Text: ${rawText}`;
 
     try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
         });
+
+        // NEW: Check if you hit the speed limit before trying to read the data
+        if (response.status === 429) {
+            throw new Error("You're moving too fast! Please wait 60 seconds before pasting another item.");
+        }
 
         const data = await response.json();
         
@@ -243,8 +248,9 @@ async function parseTextWithAI() {
 
         document.getElementById('parsed-form').style.display = 'block';
 
-    } catch (error) {
-        console.error("Full AI Response:", data); // Check console if it fails again
+} catch (error) {
+        // We log the actual error object instead of the out-of-scope 'data' variable
+        console.error("AI Parsing Error:", error); 
         alert(`Error parsing text: ${error.message}`);
     } finally {
         btn.textContent = "✨ Extract Details with AI";
